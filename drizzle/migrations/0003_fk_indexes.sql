@@ -1,0 +1,10 @@
+CREATE INDEX appointments_customer_shop_idx ON public.appointments(customer_id, barbershop_id);
+CREATE INDEX appointments_barber_shop_idx ON public.appointments(barber_id, barbershop_id);
+CREATE INDEX appointments_service_shop_idx ON public.appointments(service_id, barbershop_id);
+CREATE INDEX appointments_created_by_idx ON public.appointments(created_by);
+CREATE INDEX barber_services_barber_shop_idx ON public.barber_services(barber_id, barbershop_id);
+CREATE INDEX barber_services_service_shop_idx ON public.barber_services(service_id, barbershop_id);
+CREATE INDEX barber_time_off_barber_shop_idx ON public.barber_time_off(barber_id, barbershop_id);
+CREATE INDEX barber_time_off_created_by_idx ON public.barber_time_off(created_by);
+CREATE INDEX working_hours_barber_shop_idx ON public.working_hours(barber_id, barbershop_id);
+CREATE INDEX barbershops_created_by_idx ON public.barbershops(created_by);
