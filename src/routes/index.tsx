@@ -1,23 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-// The home route ships no og:image, so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "BarberPro — Gestão de barbearias" },
+      { name: "description", content: "BarberPro: plataforma SaaS de gestão para barbearias." },
+      { property: "og:title", content: "BarberPro — Gestão de barbearias" },
+      { property: "og:description", content: "Plataforma SaaS de gestão para barbearias." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold tracking-tight text-foreground">BarberPro</h1>
+        <p className="mt-2 text-muted-foreground">Infraestrutura pronta. Em construção.</p>
+      </div>
+    </main>
   );
 }

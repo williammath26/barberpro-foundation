@@ -28,3 +28,8 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- Multi-tenant: every business table carries a barbershop (tenant) id and RLS restricts rows to members of that barbershop — data of one establishment must never leak to another.
+- Backend is Lovable Cloud; app-internal server logic uses createServerFn, not Edge Functions.
