@@ -33,3 +33,4 @@ use the editor.
 
 - Multi-tenant: every business table carries a barbershop (tenant) id and RLS restricts rows to members of that barbershop — data of one establishment must never leak to another.
 - Backend is Lovable Cloud; app-internal server logic uses createServerFn, not Edge Functions.
+- Database access rules are documented in docs/database.md; keep it updated with every schema or RLS change.
