@@ -21,7 +21,7 @@ function Painel() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const name = (user.user_metadata?.full_name as string | undefined) || user.email;
+  const name = (user.user_metadata?.["full_name"] as string | undefined) || user.email;
 
   async function signOut() {
     await queryClient.cancelQueries();
