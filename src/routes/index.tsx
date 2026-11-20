@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,8 +19,13 @@ function Index() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-foreground">BarberPro</h1>
-        <p className="mt-2 text-muted-foreground">Infraestrutura pronta. Em construção.</p>
+        <h1 className="font-display text-5xl font-bold tracking-tight text-foreground">
+          Barber<span className="text-accent">Pro</span>
+        </h1>
+        <p className="mt-3 text-muted-foreground">Gestão completa para a sua barbearia.</p>
+        <Button asChild className="mt-8 h-11 px-8">
+          <Link to="/auth">Entrar ou criar conta</Link>
+        </Button>
       </div>
     </main>
   );
