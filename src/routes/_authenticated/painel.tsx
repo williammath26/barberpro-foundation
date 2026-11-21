@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { CreateBarbershopForm } from "@/components/CreateBarbershopForm";
@@ -91,9 +91,14 @@ function Painel() {
                     <p className="font-semibold">{m.barbershop.name}</p>
                     <p className="text-sm text-muted-foreground">{m.barbershop.address || m.barbershop.phone || "Sem endereço cadastrado"}</p>
                   </div>
-                  <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground">
-                    {ROLE_LABEL[m.role]}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground">
+                      {ROLE_LABEL[m.role]}
+                    </span>
+                    <Button asChild size="sm" variant="outline">
+                      <Link to="/servicos">Serviços</Link>
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
