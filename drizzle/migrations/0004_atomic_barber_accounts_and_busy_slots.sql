@@ -162,3 +162,80 @@ GRANT EXECUTE ON FUNCTION public.link_barber_account(uuid, uuid, uuid),
   public.unlink_barber_account(uuid, uuid),
   public.get_barber_busy_slots(uuid, timestamptz, timestamptz)
 TO authenticated;
+
+
+-- Create a walk-in customer and its appointment in one transaction.
+-- If appointment validation or the exclusion constraint fails, the customer
+-- insert is rolled back with the function call.
+CREATE OR REPLACE FUNCTION public.create_appointment_with_new_customer(
+  _shop_id uuid,
+  _barber_id uuid,
+  _service_id uuid,
+  _starts_at timestamptz,
+  _customer_name text,
+  _customer_phone text DEFAULT NULL
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_customer_id uuid;
+  v_appointment_id uuid;
+  v_service public.services%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.is_shop_frontdesk(_shop_id) THEN
+    RAISE EXCEPTION 'Permissão insuficiente para criar agendamentos';
+  END IF;
+  IF _customer_name IS NULL OR char_length(btrim(_customer_name)) NOT BETWEEN 1 AND 150 THEN
+    RAISE EXCEPTION 'Informe um nome de cliente válido';
+  END IF;
+  IF _customer_phone IS NOT NULL AND char_length(_customer_phone) > 30 THEN
+    RAISE EXCEPTION 'Telefone inválido';
+  END IF;
+
+  SELECT * INTO v_service
+  FROM public.services
+  WHERE id = _service_id AND barbershop_id = _shop_id AND is_active;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Serviço indisponível';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.barbers
+    WHERE id = _barber_id AND barbershop_id = _shop_id AND is_active
+  ) THEN
+    RAISE EXCEPTION 'Barbeiro indisponível';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.barber_services
+    WHERE barber_id = _barber_id AND service_id = _service_id AND barbershop_id = _shop_id
+  ) THEN
+    RAISE EXCEPTION 'Este barbeiro não realiza o serviço escolhido';
+  END IF;
+
+  INSERT INTO public.customers (barbershop_id, full_name, phone)
+    VALUES (_shop_id, btrim(_customer_name), NULLIF(btrim(COALESCE(_customer_phone, '')), ''))
+    RETURNING id INTO v_customer_id;
+
+  INSERT INTO public.appointments (
+    barbershop_id, customer_id, barber_id, service_id,
+    starts_at, ends_at, duration_minutes, price
+  )
+  VALUES (
+    _shop_id, v_customer_id, _barber_id, _service_id,
+    _starts_at, _starts_at + make_interval(mins => v_service.duration_minutes),
+    v_service.duration_minutes, v_service.price
+  )
+  RETURNING id INTO v_appointment_id;
+
+  RETURN v_appointment_id;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.create_appointment_with_new_customer(
+  uuid, uuid, uuid, timestamptz, text, text
+) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_appointment_with_new_customer(
+  uuid, uuid, uuid, timestamptz, text, text
+) TO authenticated;
