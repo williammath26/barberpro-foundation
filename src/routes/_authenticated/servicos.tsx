@@ -1,19 +1,15 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { AppHeader } from "@/components/AppHeader";
 import { ServiceForm } from "@/components/ServiceForm";
-import { formatBRL, formatDuration } from "@/lib/service-rules";
+import { ROLE_LABEL, useActiveBarbershop } from "@/hooks/use-my-barbershops";
+import { formatBRL, formatDuration, isLinkedAppointmentsError } from "@/lib/service-rules";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,40 +43,26 @@ export const Route = createFileRoute("/_authenticated/servicos")({
   component: Servicos,
 });
 
-const ROLE_LABEL: Record<string, string> = {
-  owner: "Proprietário",
-  admin: "Administrador",
-  barber: "Barbeiro",
-  receptionist: "Recepcionista",
-};
-
 function Servicos() {
   const { user } = Route.useRouteContext();
-  const navigate = useNavigate();
+  const { shop: requestedShopId } = Route.useSearch();
   const queryClient = useQueryClient();
 
-  const [shopId, setShopId] = useState<string>("");
   const [editing, setEditing] = useState<ServiceRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ServiceRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const shops = useQuery({
-    queryKey: ["my-barbershops", user.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("shop_memberships")
-        .select("role, barbershop:barbershops(id, name)")
-        .eq("user_id", user.id)
-        .eq("is_active", true);
-      if (error) throw error;
-      return data.filter((m) => m.barbershop);
-    },
-  });
+  const { shops, activeShopId, activeShop, activeRole, canManage, setActiveShopId, shopsQuery } =
+    useActiveBarbershop("/servicos", user.id, requestedShopId);
 
-  const activeShopId = shopId || shops.data?.[0]?.barbershop?.id || "";
-  const activeShop = shops.data?.find((m) => m.barbershop?.id === activeShopId);
-  const canManage = activeShop?.role === "owner" || activeShop?.role === "admin";
+  // Trocar de barbearia (seletor ou URL) nunca deve carregar estado da loja anterior:
+  // formulários abertos fecham, evitando salvar um rascunho na loja errada.
+  useEffect(() => {
+    setCreating(false);
+    setEditing(null);
+    setPendingDelete(null);
+  }, [activeShopId]);
 
   const services = useQuery({
     queryKey: ["services", activeShopId],
@@ -96,45 +78,42 @@ function Servicos() {
     },
   });
 
-  async function signOut() {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
-  }
-
   async function confirmDelete() {
     if (!pendingDelete) return;
     setDeleting(true);
-    try {
-      const { error } = await supabase
-        .from("services")
-        .delete()
-        .eq("id", pendingDelete.id)
-        .eq("barbershop_id", activeShopId);
-      if (error) throw error;
-      await queryClient.invalidateQueries({ queryKey: ["services", activeShopId] });
-      setPendingDelete(null);
-    } catch {
-      // The row is still there; the dialog stays open so the user can retry.
-    } finally {
-      setDeleting(false);
+    const { error } = await supabase
+      .from("services")
+      .delete()
+      .eq("id", pendingDelete.id)
+      .eq("barbershop_id", activeShopId);
+    setDeleting(false);
+    if (error) {
+      if (isLinkedAppointmentsError(error)) {
+        toast.error(
+          `${pendingDelete.name} possui agendamentos vinculados e não pode ser excluído. ` +
+            "Desative o serviço para tirá-lo da lista de agendamentos.",
+        );
+        setPendingDelete(null);
+      } else {
+        // Falha transitória: o diálogo fica aberto para o usuário tentar de novo.
+        toast.error("Não foi possível excluir o serviço. Tente novamente.");
+      }
+      return;
     }
+    await queryClient.invalidateQueries({ queryKey: ["services", activeShopId] });
+    setPendingDelete(null);
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="flex items-center justify-between border-b border-border px-6 py-4">
-        <Link to="/painel" className="font-display text-xl font-bold">
-          Barber<span className="text-accent">Pro</span>
-        </Link>
-        <Button variant="outline" size="sm" onClick={signOut}>
-          Sair
-        </Button>
-      </header>
+      <AppHeader shops={shops} activeShopId={activeShopId} onSelectShop={setActiveShopId} />
 
       <main className="mx-auto max-w-3xl px-6 py-12">
-        <Link to="/painel" className="text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/painel"
+          search={activeShopId ? { shop: activeShopId } : {}}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
           ← Voltar ao painel
         </Link>
         <h1 className="mt-2 font-display text-4xl font-bold">Serviços</h1>
@@ -142,9 +121,9 @@ function Servicos() {
           O que a sua barbearia oferece, com preço e duração de cada atendimento.
         </p>
 
-        {shops.isLoading ? (
+        {shopsQuery.isLoading ? (
           <p className="mt-8 text-muted-foreground">Carregando...</p>
-        ) : !shops.data?.length ? (
+        ) : !shops.length ? (
           <section className="mt-8 rounded-lg border border-border bg-card p-6">
             <p>Cadastre sua barbearia para começar a listar serviços.</p>
             <Button asChild className="mt-4">
@@ -153,30 +132,13 @@ function Servicos() {
           </section>
         ) : (
           <>
-            {shops.data.length > 1 && (
-              <div className="mt-8 max-w-xs">
-                <Select value={activeShopId} onValueChange={setShopId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Escolher barbearia" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {shops.data.map((m) => (
-                      <SelectItem key={m.barbershop?.id} value={m.barbershop?.id ?? ""}>
-                        {m.barbershop?.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             <section className="mt-6">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <h2 className="font-display text-2xl font-bold">
-                  {shops.data.length === 1 ? shops.data[0]?.barbershop?.name : "Lista de serviços"}
+                  {activeShop?.name ?? "Lista de serviços"}
                 </h2>
                 {canManage && !creating && !editing && (
-                  <Button size="sm" onClick={() => setCreating(true)}>
+                  <Button size="sm" onClick={() => setCreating(true)} data-testid="new-service-button">
                     Novo serviço
                   </Button>
                 )}
@@ -188,6 +150,7 @@ function Servicos() {
                     {editing ? "Editar serviço" : "Novo serviço"}
                   </h3>
                   <ServiceForm
+                    key={`${activeShopId}-${editing?.id ?? "new"}`}
                     barbershopId={activeShopId}
                     {...(editing ? { service: editing } : {})}
                     onDone={() => {
@@ -200,7 +163,7 @@ function Servicos() {
 
               {!canManage && (
                 <p className="mb-4 rounded-lg border border-border bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
-                  Você está aqui como {ROLE_LABEL[activeShop?.role ?? ""]}. Só o proprietário ou
+                  Você está aqui como {ROLE_LABEL[activeRole ?? ""]}. Só o proprietário ou
                   o administrador pode alterar os serviços.
                 </p>
               )}
@@ -274,8 +237,14 @@ function Servicos() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} disabled={deleting}>
+            <AlertDialogCancel disabled={deleting} data-testid="cancel-delete-service-button">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleting}
+              data-testid="confirm-delete-service-button"
+            >
               {deleting ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>

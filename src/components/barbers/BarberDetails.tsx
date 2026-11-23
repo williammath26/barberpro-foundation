@@ -26,7 +26,8 @@ export function BarberDetails({ barber, shopId, canManage }: Props) {
   const services = useQuery({
     queryKey: ["services", shopId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("services").select("id, name, is_active").eq("barbershop_id", shopId).order("name");
+      // Mesma chave e shape da tela /servicos (select *), para o cache nunca divergir.
+      const { data, error } = await supabase.from("services").select("*").eq("barbershop_id", shopId).order("name");
       if (error) throw error;
       return data;
     },
