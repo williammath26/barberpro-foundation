@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { LovableMark } from "@lovable.dev/cloud-auth-js/react";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +47,19 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
+  // Antes da hidratação o form não tem handler: um envio cairia num GET nativo
+  // e recarregaria a página apagando o que foi digitado. Bloqueamos o envio até
+  // hidratar e recuperamos o que o usuário já digitou no DOM.
+  const [hydrated, setHydrated] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (nameRef.current?.value) setName(nameRef.current.value);
+    if (emailRef.current?.value) setEmail(emailRef.current.value);
+    if (passwordRef.current?.value) setPassword(passwordRef.current.value);
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -135,16 +148,16 @@ function AuthPage() {
         </>
       )}
 
-      <form onSubmit={onSubmit} className={mode === "forgot" ? "mt-8 grid gap-4" : "grid gap-4"}>
+      <form method="post" onSubmit={onSubmit} className={mode === "forgot" ? "mt-8 grid gap-4" : "grid gap-4"} data-testid="auth-form">
         {mode === "signup" && (
           <div className="grid gap-2">
             <Label htmlFor="name">Nome completo</Label>
-            <Input id="name" required maxLength={150} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+            <Input ref={nameRef} id="name" required maxLength={150} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
           </div>
         )}
         <div className="grid gap-2">
           <Label htmlFor="email">E-mail</Label>
-          <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+          <Input ref={emailRef} id="email" type="email" required data-testid="auth-email-input" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
         </div>
         {mode !== "forgot" && (
           <div className="grid gap-2">
@@ -156,11 +169,11 @@ function AuthPage() {
                 </button>
               )}
             </div>
-            <Input id="password" type="password" required minLength={mode === "signup" ? 8 : undefined} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "signup" ? "new-password" : "current-password"} />
+            <Input ref={passwordRef} id="password" type="password" required data-testid="auth-password-input" minLength={mode === "signup" ? 8 : undefined} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "signup" ? "new-password" : "current-password"} />
           </div>
         )}
-        <Button type="submit" className="mt-2 h-11 w-full" disabled={loading}>
-          {loading ? "Aguarde..." : mode === "signin" ? "Entrar" : mode === "signup" ? "Criar conta" : "Enviar link"}
+        <Button type="submit" className="mt-2 h-11 w-full" disabled={loading || !hydrated} data-testid="auth-submit-button">
+          {!hydrated ? "Carregando..." : loading ? "Aguarde..." : mode === "signin" ? "Entrar" : mode === "signup" ? "Criar conta" : "Enviar link"}
         </Button>
       </form>
 

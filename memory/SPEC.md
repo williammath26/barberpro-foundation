@@ -23,6 +23,12 @@ Isolamento multi-tenant: barbershop_id em toda tabela + FKs compostas (id, barbe
 - /barbeiros : CRUD barbeiro + vínculo com serviços + expediente semanal + folgas (lib/barber-rules; EXPEDIENTE usa hora local da barbearia, mas FOLGAS converte com fuso do navegador — bug latente)
 - Guard: rota _authenticated com beforeLoad (getUser) → redirect /auth; onAuthStateChange invalida router/query.
 
+## Agenda, convite de barbeiro, fuso e login
+- /agenda (src/routes/_authenticated/agenda.tsx): dia no fuso da loja (lib/timezone), lista appointments do dia (RLS: frontdesk vê todos, barbeiro só os seus), mudar status (Confirmar/Concluir/Faltou/Cancelar). Frontdesk cria agendamento: barbeiro → serviços que ele faz → horários livres (lib/agenda-rules.computeFreeSlots: expediente do dia − get_barber_busy_slots − passado, passo 15min) → cliente existente ou novo. Conflito 23P01 / mensagens P0001 do trigger viram toast (describeAppointmentError).
+- Convite por código (sem mudar banco): painel mostra "código de convite" = user.id; em Barbeiros → "Conta do barbeiro" o owner/admin cola o código → cria shop_memberships role barber + barbers.profile_id. Desvincular reverte. Barbeiro ligado vê a loja no painel e só a própria agenda.
+- Folgas: datetime-local interpretado e exibido no fuso da barbearia (zonedLocalToUtcIso / formatInZone), não no do navegador.
+- Login/reset: botão desabilitado ("Carregando...") até hidratar; valores digitados antes da hidratação são recuperados do DOM; form method=post evita GET nativo.
+
 ## Contexto multi-tenant (barbearia ativa)
 - Fonte única: src/hooks/use-my-barbershops.ts
   - useMyBarbershops(userId): única query de memberships, chave ["my-barbershops", userId], shape completo (id, name, phone, address), .order("created_at"), staleTime 60s (invalidada ao criar barbearia e no login/logout).

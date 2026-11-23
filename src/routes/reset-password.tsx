@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthShell } from "@/components/AuthShell";
@@ -27,6 +27,15 @@ function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  // Mesmo cuidado da tela de login: nada de envio nativo antes da hidratação.
+  const [hydrated, setHydrated] = useState(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (passwordRef.current?.value) setPassword(passwordRef.current.value);
+    if (confirmRef.current?.value) setConfirm(confirmRef.current.value);
+    setHydrated(true);
+  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -44,17 +53,17 @@ function ResetPassword() {
     <AuthShell>
       <h1 className="font-display text-3xl font-bold">Criar nova senha</h1>
       <p className="mt-2 text-muted-foreground">Escolha uma senha com pelo menos 8 caracteres.</p>
-      <form onSubmit={onSubmit} className="mt-8 grid gap-4">
+      <form method="post" onSubmit={onSubmit} className="mt-8 grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="password">Nova senha</Label>
-          <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+          <Input ref={passwordRef} id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="confirm">Confirmar senha</Label>
-          <Input id="confirm" type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
+          <Input ref={confirmRef} id="confirm" type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
         </div>
-        <Button type="submit" className="mt-2 h-11 w-full" disabled={loading}>
-          {loading ? "Salvando..." : "Salvar nova senha"}
+        <Button type="submit" className="mt-2 h-11 w-full" disabled={loading || !hydrated}>
+          {!hydrated ? "Carregando..." : loading ? "Salvando..." : "Salvar nova senha"}
         </Button>
       </form>
     </AuthShell>

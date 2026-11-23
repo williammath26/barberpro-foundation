@@ -20,6 +20,7 @@ export type MyMembership = {
     name: string;
     phone: string | null;
     address: string | null;
+    timezone: string;
   };
 };
 
@@ -38,7 +39,7 @@ export function useMyBarbershops(userId: string) {
     queryFn: async (): Promise<MyMembership[]> => {
       const { data, error } = await supabase
         .from("shop_memberships")
-        .select("role, barbershop:barbershops(id, name, phone, address)")
+        .select("role, barbershop:barbershops(id, name, phone, address, timezone)")
         .eq("user_id", userId)
         .eq("is_active", true)
         .order("created_at", { ascending: true });
@@ -58,7 +59,7 @@ export function useMyBarbershops(userId: string) {
  * é normalizada.
  */
 /** Páginas do painel que compartilham a barbearia ativa. */
-export type ShopScopedPath = "/painel" | "/servicos" | "/barbeiros";
+export type ShopScopedPath = "/painel" | "/servicos" | "/barbeiros" | "/agenda";
 
 export type ShopSearch = { shop?: string };
 

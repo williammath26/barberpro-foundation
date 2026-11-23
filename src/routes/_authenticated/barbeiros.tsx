@@ -154,7 +154,7 @@ function Barbeiros() {
                         </Button>
                       </div>
                     </div>
-                    {openId === b.id && <BarberDetails barber={b} shopId={activeShopId} canManage={canManage} />}
+                    {openId === b.id && <BarberDetails barber={b} shopId={activeShopId} canManage={canManage} timeZone={activeShop?.timezone ?? "America/Fortaleza"} />}
                   </li>
                 ))}
               </ul>

@@ -39,8 +39,8 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 import { parseShopSearch, useActiveBarbershop, type ShopScopedPath } from "./use-my-barbershops";
 
-const SHOP_A = { id: "shop-a", name: "Navalha de Ouro", phone: "85 9999", address: "Rua A" };
-const SHOP_B = { id: "shop-b", name: "Corte Fino", phone: null, address: null };
+const SHOP_A = { id: "shop-a", name: "Navalha de Ouro", phone: "85 9999", address: "Rua A", timezone: "America/Fortaleza" };
+const SHOP_B = { id: "shop-b", name: "Corte Fino", phone: null, address: null, timezone: "America/Fortaleza" };
 const FOREIGN = "shop-de-outro-dono";
 
 function Probe({ path }: { path: ShopScopedPath }) {
@@ -165,7 +165,7 @@ describe("useActiveBarbershop", () => {
     const { queryClient } = setup("/painel");
     await screen.findByTestId("active");
     expect(queryClient.getQueryData(["my-barbershops", "user-1"])).toEqual([
-      { role: "owner", barbershop: { id: "shop-a", name: "Navalha de Ouro", phone: "85 9999", address: "Rua A" } },
+      { role: "owner", barbershop: { id: "shop-a", name: "Navalha de Ouro", phone: "85 9999", address: "Rua A", timezone: "America/Fortaleza" } },
     ]);
     const keys = queryClient.getQueryCache().getAll().map((q) => q.queryKey);
     expect(keys).toEqual([["my-barbershops", "user-1"]]);
