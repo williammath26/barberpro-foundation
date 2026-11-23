@@ -7,8 +7,9 @@
 - [x] Cadastro da barbearia no painel (testado pelo usuário).
 - [x] Módulo Serviços: nome, preço, duração, descrição e ativo/inativo (testes de regra passando).
 
+- [x] Barbeiros e horários: cadastro, serviços de cada barbeiro, expediente semanal e folgas.
+
 ## Pendente
-- [ ] Barbeiros e horários: quem trabalha, que serviços faz, expediente e folgas.
 - [ ] Agenda: ver e criar agendamentos com bloqueio de horários ocupados.
 - [ ] Clientes: cadastro e histórico.
 - [ ] Equipe: convidar administradores e recepcionistas.

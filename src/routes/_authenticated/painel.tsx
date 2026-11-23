@@ -98,6 +98,9 @@ function Painel() {
                     <Button asChild size="sm" variant="outline">
                       <Link to="/servicos">Serviços</Link>
                     </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link to="/barbeiros">Barbeiros</Link>
+                    </Button>
                   </div>
                 </li>
               ))}

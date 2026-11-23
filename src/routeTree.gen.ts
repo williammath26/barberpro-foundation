@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedBarbeirosRouteImport } from './routes/_authenticated/barbeiros'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
 
@@ -35,6 +36,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedBarbeirosRoute = AuthenticatedBarbeirosRouteImport.update({
+  id: '/barbeiros',
+  path: '/barbeiros',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   id: '/painel',
   path: '/painel',
@@ -50,6 +56,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/barbeiros': typeof AuthenticatedBarbeirosRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/servicos': typeof AuthenticatedServicosRoute
 }
@@ -57,6 +64,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/barbeiros': typeof AuthenticatedBarbeirosRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/servicos': typeof AuthenticatedServicosRoute
 }
@@ -66,20 +74,23 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/barbeiros': typeof AuthenticatedBarbeirosRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/reset-password' | '/painel' | '/servicos'
+  fullPaths:
+    '/' | '/auth' | '/reset-password' | '/barbeiros' | '/painel' | '/servicos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/reset-password' | '/painel' | '/servicos'
+  to: '/' | '/auth' | '/reset-password' | '/barbeiros' | '/painel' | '/servicos'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/_authenticated/barbeiros'
     | '/_authenticated/painel'
     | '/_authenticated/servicos'
   fileRoutesById: FileRoutesById
@@ -121,6 +132,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/barbeiros': {
+      id: '/_authenticated/barbeiros'
+      path: '/barbeiros'
+      fullPath: '/barbeiros'
+      preLoaderRoute: typeof AuthenticatedBarbeirosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/painel': {
       id: '/_authenticated/painel'
       path: '/painel'
@@ -139,11 +157,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedBarbeirosRoute: typeof AuthenticatedBarbeirosRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedBarbeirosRoute: AuthenticatedBarbeirosRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
 }
