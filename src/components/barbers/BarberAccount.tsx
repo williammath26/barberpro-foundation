@@ -9,11 +9,7 @@ import { Input } from "@/components/ui/input";
 type Barber = Database["public"]["Tables"]["barbers"]["Row"];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/**
- * Liga um barbeiro à conta de um usuário pelo código de convite (o id do usuário,
- * exibido no painel dele). Usa só o que a RLS já permite a owner/admin:
- * criar membership com papel "barber" e preencher barbers.profile_id.
- */
+/** Vincula e desvincula contas por funções transacionais no banco. */
 export function BarberAccount({ barber, shopId, canManage }: { barber: Barber; shopId: string; canManage: boolean }) {
   const qc = useQueryClient();
   const [code, setCode] = useState("");
@@ -22,35 +18,34 @@ export function BarberAccount({ barber, shopId, canManage }: { barber: Barber; s
 
   async function link() {
     const userId = code.trim();
-    if (!UUID_RE.test(userId)) { toast.error("Código inválido. Peça ao barbeiro o código que aparece no painel dele."); return; }
+    if (!UUID_RE.test(userId)) {
+      toast.error("Código inválido. Peça ao barbeiro o código que aparece no painel dele.");
+      return;
+    }
     setBusy(true);
     try {
-      const { data: existing, error: readErr } = await supabase
-        .from("shop_memberships").select("id, role, is_active").eq("barbershop_id", shopId).eq("user_id", userId).maybeSingle();
-      if (readErr) throw readErr;
-      if (existing && existing.role !== "barber") {
-        { toast.error("Essa conta já faz parte da equipe com outro papel."); return; }
-      }
-      if (!existing) {
-        const { error } = await supabase.from("shop_memberships").insert({ barbershop_id: shopId, user_id: userId, role: "barber" });
-        if (error) {
-          if (error.code === "23503") { toast.error("Código não encontrado. Confira se o barbeiro já criou a conta."); return; }
+      const { error } = await supabase.rpc("link_barber_account", {
+        _shop_id: shopId,
+        _barber_id: barber.id,
+        _user_id: userId,
+      });
+      if (error) {
+        if (error.message.includes("Conta não encontrada")) {
+          toast.error("Código não encontrado. Confira se o barbeiro já criou a conta.");
+        } else if (error.message.includes("outro papel")) {
+          toast.error("Essa conta já faz parte da equipe com outro papel.");
+        } else if (error.code === "23505") {
+          toast.error("Essa conta já está ligada a outro barbeiro desta loja.");
+        } else {
           throw error;
         }
-      } else if (!existing.is_active) {
-        const { error } = await supabase.from("shop_memberships").update({ is_active: true }).eq("id", existing.id);
-        if (error) throw error;
-      }
-      const { error: linkErr } = await supabase.from("barbers").update({ profile_id: userId }).eq("id", barber.id).eq("barbershop_id", shopId);
-      if (linkErr) {
-        if (linkErr.code === "23505") { toast.error("Essa conta já está ligada a outro barbeiro desta loja."); return; }
-        throw linkErr;
+        return;
       }
       toast.success("Conta ligada. O barbeiro já vê a própria agenda ao entrar.");
       setCode("");
       await refresh();
     } catch {
-      toast.error("Não foi possível ligar a conta. Tente novamente.");
+      toast.error("Não foi possível ligar a conta. Verifique suas permissões e tente novamente.");
     } finally {
       setBusy(false);
     }
@@ -59,14 +54,19 @@ export function BarberAccount({ barber, shopId, canManage }: { barber: Barber; s
   async function unlink() {
     if (!barber.profile_id) return;
     setBusy(true);
-    const { error } = await supabase.from("barbers").update({ profile_id: null }).eq("id", barber.id).eq("barbershop_id", shopId);
-    if (!error) {
-      await supabase.from("shop_memberships").delete().eq("barbershop_id", shopId).eq("user_id", barber.profile_id).eq("role", "barber");
+    try {
+      const { error } = await supabase.rpc("unlink_barber_account", {
+        _shop_id: shopId,
+        _barber_id: barber.id,
+      });
+      if (error) throw error;
+      toast.success("Conta desvinculada.");
+      await refresh();
+    } catch {
+      toast.error("Não foi possível desvincular a conta. Verifique suas permissões e tente novamente.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
-    if (error) { toast.error("Não foi possível desvincular a conta."); return; }
-    toast.success("Conta desvinculada.");
-    await refresh();
   }
 
   return (
