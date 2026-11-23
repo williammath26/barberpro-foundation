@@ -517,6 +517,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      link_barber_account: {
+        Args: { _shop_id: string; _barber_id: string; _user_id: string }
+        Returns: undefined
+      }
+      unlink_barber_account: {
+        Args: { _shop_id: string; _barber_id: string }
+        Returns: undefined
+      }
       barber_serves_customer: {
         Args: { _customer_id: string }
         Returns: boolean
