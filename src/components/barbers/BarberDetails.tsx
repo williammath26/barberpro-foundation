@@ -9,24 +9,27 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WEEKDAYS, shortTime, validateSlot, validateTimeOff } from "@/lib/barber-rules";
+import { formatInZone, zonedLocalToUtcIso } from "@/lib/timezone";
+import { BarberAccount } from "@/components/barbers/BarberAccount";
 
 type Barber = Database["public"]["Tables"]["barbers"]["Row"];
 
-type Props = { barber: Barber; shopId: string; canManage: boolean };
+type Props = { barber: Barber; shopId: string; canManage: boolean; timeZone: string };
 
 function fail(e: unknown) {
   const msg = e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "";
   toast.error(msg.includes("overlap") || msg.includes("exclusion") ? "Horário sobreposto a outro já cadastrado." : "Não foi possível salvar. Tente novamente.");
 }
 
-export function BarberDetails({ barber, shopId, canManage }: Props) {
+export function BarberDetails({ barber, shopId, canManage, timeZone }: Props) {
   const qc = useQueryClient();
   const key = (k: string) => [k, shopId, barber.id];
 
   const services = useQuery({
     queryKey: ["services", shopId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("services").select("id, name, is_active").eq("barbershop_id", shopId).order("name");
+      // Mesma chave e shape da tela /servicos (select *), para o cache nunca divergir.
+      const { data, error } = await supabase.from("services").select("*").eq("barbershop_id", shopId).order("name");
       if (error) throw error;
       return data;
     },
@@ -88,11 +91,15 @@ export function BarberDetails({ barber, shopId, canManage }: Props) {
   async function addTimeOff() {
     const err = validateTimeOff(offStart, offEnd);
     if (err) return toast.error(err);
+    // Os campos são preenchidos no horário da barbearia, não no do navegador.
+    const startsAt = zonedLocalToUtcIso(offStart, timeZone);
+    const endsAt = zonedLocalToUtcIso(offEnd, timeZone);
+    if (!startsAt || !endsAt) return toast.error("Informe início e fim da folga.");
     const { error } = await supabase.from("barber_time_off").insert({
       barbershop_id: shopId,
       barber_id: barber.id,
-      starts_at: new Date(offStart).toISOString(),
-      ends_at: new Date(offEnd).toISOString(),
+      starts_at: startsAt,
+      ends_at: endsAt,
       reason: reason.trim() || null,
     });
     if (error) return fail(error);
@@ -105,10 +112,11 @@ export function BarberDetails({ barber, shopId, canManage }: Props) {
     qc.invalidateQueries({ queryKey: key("time-off") });
   }
 
-  const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  const fmt = (iso: string) => formatInZone(iso, timeZone, { dateStyle: "short", timeStyle: "short" });
 
   return (
     <div className="mt-4 grid gap-6 border-t border-border pt-4">
+      <BarberAccount barber={barber} shopId={shopId} canManage={canManage} />
       <section>
         <h4 className="font-semibold">Serviços que faz</h4>
         {!services.data?.length ? (
@@ -164,13 +172,14 @@ export function BarberDetails({ barber, shopId, canManage }: Props) {
 
       <section>
         <h4 className="font-semibold">Folgas e bloqueios</h4>
+        <p className="text-xs text-muted-foreground" data-testid="time-off-timezone-note">Horários no fuso da barbearia ({timeZone}).</p>
         {!timeOff.data?.length ? (
           <p className="mt-1 text-sm text-muted-foreground">Nenhuma folga futura.</p>
         ) : (
           <ul className="mt-2 grid gap-1 text-sm">
             {timeOff.data.map((t) => (
               <li key={t.id} className="flex items-center justify-between rounded border border-border px-3 py-1.5">
-                <span>{fmt(t.starts_at)} → {fmt(t.ends_at)}{t.reason ? ` · ${t.reason}` : ""}</span>
+                <span data-testid="time-off-item">{fmt(t.starts_at)} → {fmt(t.ends_at)}{t.reason ? ` · ${t.reason}` : ""}</span>
                 {canManage && <Button variant="ghost" size="sm" onClick={() => removeTimeOff(t.id)}>Remover</Button>}
               </li>
             ))}
@@ -178,10 +187,10 @@ export function BarberDetails({ barber, shopId, canManage }: Props) {
         )}
         {canManage && (
           <div className="mt-3 flex flex-wrap items-end gap-2">
-            <div className="grid gap-1"><Label>Início</Label><Input type="datetime-local" value={offStart} onChange={(e) => setOffStart(e.target.value)} /></div>
-            <div className="grid gap-1"><Label>Fim</Label><Input type="datetime-local" value={offEnd} onChange={(e) => setOffEnd(e.target.value)} /></div>
+            <div className="grid gap-1"><Label>Início</Label><Input type="datetime-local" data-testid="time-off-start-input" value={offStart} onChange={(e) => setOffStart(e.target.value)} /></div>
+            <div className="grid gap-1"><Label>Fim</Label><Input type="datetime-local" data-testid="time-off-end-input" value={offEnd} onChange={(e) => setOffEnd(e.target.value)} /></div>
             <div className="grid gap-1"><Label>Motivo (opcional)</Label><Input value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} className="w-44" /></div>
-            <Button size="sm" onClick={addTimeOff}>Adicionar folga</Button>
+            <Button size="sm" onClick={addTimeOff} data-testid="add-time-off-button">Adicionar folga</Button>
           </div>
         )}
       </section>

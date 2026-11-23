@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatBRL,
   formatDuration,
+  isLinkedAppointmentsError,
   parseMoney,
   validateServiceDraft,
   type ServiceDraft,
@@ -75,5 +76,23 @@ describe("formatting", () => {
 
   it("formats hours and minutes", () => {
     expect(formatDuration(90)).toBe("1h 30min");
+  });
+});
+
+describe("isLinkedAppointmentsError", () => {
+  it("reconhece a violação de FK (23503) de agendamentos vinculados", () => {
+    expect(
+      isLinkedAppointmentsError({
+        code: "23503",
+        message:
+          'update or delete on table "services" violates foreign key constraint "appointments_service_id_barbershop_id_fkey"',
+      }),
+    ).toBe(true);
+  });
+
+  it("não confunde outros erros com agendamentos vinculados", () => {
+    expect(isLinkedAppointmentsError({ code: "42501", message: "permission denied" })).toBe(false);
+    expect(isLinkedAppointmentsError({ code: "PGRST301", message: "JWT expired" })).toBe(false);
+    expect(isLinkedAppointmentsError(null)).toBe(false);
   });
 });

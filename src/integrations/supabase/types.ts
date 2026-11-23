@@ -517,6 +517,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_appointment_with_new_customer: {
+        Args: {
+          _shop_id: string
+          _barber_id: string
+          _service_id: string
+          _starts_at: string
+          _customer_name: string
+          _customer_phone?: string | null
+        }
+        Returns: string
+      }
+      link_barber_account: {
+        Args: { _shop_id: string; _barber_id: string; _user_id: string }
+        Returns: undefined
+      }
+      unlink_barber_account: {
+        Args: { _shop_id: string; _barber_id: string }
+        Returns: undefined
+      }
       barber_serves_customer: {
         Args: { _customer_id: string }
         Returns: boolean

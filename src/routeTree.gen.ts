@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedBarbeirosRouteImport } from './routes/_authenticated/barbeiros'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
@@ -36,6 +37,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBarbeirosRoute = AuthenticatedBarbeirosRouteImport.update({
   id: '/barbeiros',
   path: '/barbeiros',
@@ -56,6 +62,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/agenda': typeof AuthenticatedAgendaRoute
   '/barbeiros': typeof AuthenticatedBarbeirosRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/servicos': typeof AuthenticatedServicosRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/agenda': typeof AuthenticatedAgendaRoute
   '/barbeiros': typeof AuthenticatedBarbeirosRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/servicos': typeof AuthenticatedServicosRoute
@@ -74,6 +82,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/barbeiros': typeof AuthenticatedBarbeirosRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
@@ -81,15 +90,29 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/reset-password' | '/barbeiros' | '/painel' | '/servicos'
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/agenda'
+    | '/barbeiros'
+    | '/painel'
+    | '/servicos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/reset-password' | '/barbeiros' | '/painel' | '/servicos'
+  to:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/agenda'
+    | '/barbeiros'
+    | '/painel'
+    | '/servicos'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/_authenticated/agenda'
     | '/_authenticated/barbeiros'
     | '/_authenticated/painel'
     | '/_authenticated/servicos'
@@ -132,6 +155,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/agenda': {
+      id: '/_authenticated/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AuthenticatedAgendaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/barbeiros': {
       id: '/_authenticated/barbeiros'
       path: '/barbeiros'
@@ -157,12 +187,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedBarbeirosRoute: typeof AuthenticatedBarbeirosRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedBarbeirosRoute: AuthenticatedBarbeirosRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,

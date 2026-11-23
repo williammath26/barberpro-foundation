@@ -64,3 +64,15 @@ export function formatDuration(minutes: number): string {
   if (rest === 0) return `${hours}h`;
   return `${hours}h ${rest}min`;
 }
+
+/**
+ * Exclusão bloqueada porque o serviço tem agendamentos vinculados.
+ * appointments.service_id usa FK ON DELETE RESTRICT: o Postgres responde 23503
+ * (foreign_key_violation) e nada é excluído.
+ */
+export function isLinkedAppointmentsError(
+  error: { code?: string | null; message?: string | null } | null | undefined,
+): boolean {
+  if (!error) return false;
+  return error.code === "23503" || /foreign key/i.test(error.message ?? "");
+}
