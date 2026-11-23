@@ -257,25 +257,34 @@ function AppointmentForm({ shopId, day, tz, barbers, onDone }: {
     if (!customerId || (customerId === NEW_CUSTOMER && !newName.trim())) { toast.error("Informe o cliente."); return; }
     setSaving(true);
     try {
-      let cid = customerId;
       if (customerId === NEW_CUSTOMER) {
-        const { data, error } = await supabase.from("customers")
-          .insert({ barbershop_id: shopId, full_name: newName.trim(), phone: newPhone.trim() || null })
-          .select("id").single();
-        if (error) throw error;
-        cid = data.id;
+        const { error } = await supabase.rpc("create_appointment_with_new_customer", {
+          _shop_id: shopId,
+          _barber_id: barberId,
+          _service_id: service.id,
+          _starts_at: slot,
+          _customer_name: newName.trim(),
+          _customer_phone: newPhone.trim() || null,
+        });
+        if (error) {
+          toast.error(describeAppointmentError(error));
+          await qc.invalidateQueries({ queryKey: ["busy-slots", barberId, day] });
+          setSlot("");
+          return;
+        }
         await qc.invalidateQueries({ queryKey: ["customers", shopId] });
-      }
-      const ends = new Date(Date.parse(slot) + service.duration_minutes * 60_000).toISOString();
-      const { error } = await supabase.from("appointments").insert({
-        barbershop_id: shopId, customer_id: cid, barber_id: barberId, service_id: service.id,
-        starts_at: slot, ends_at: ends, duration_minutes: service.duration_minutes, price: service.price,
-      });
-      if (error) {
-        toast.error(describeAppointmentError(error));
-        await qc.invalidateQueries({ queryKey: ["busy-slots", barberId, day] });
-        setSlot("");
-        return;
+      } else {
+        const ends = new Date(Date.parse(slot) + service.duration_minutes * 60_000).toISOString();
+        const { error } = await supabase.from("appointments").insert({
+          barbershop_id: shopId, customer_id: customerId, barber_id: barberId, service_id: service.id,
+          starts_at: slot, ends_at: ends, duration_minutes: service.duration_minutes, price: service.price,
+        });
+        if (error) {
+          toast.error(describeAppointmentError(error));
+          await qc.invalidateQueries({ queryKey: ["busy-slots", barberId, day] });
+          setSlot("");
+          return;
+        }
       }
       toast.success("Agendamento criado.");
       await qc.invalidateQueries({ queryKey: ["appointments", shopId] });
