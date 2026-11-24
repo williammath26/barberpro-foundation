@@ -91,7 +91,7 @@ function Painel() {
                     <p className="font-semibold">{m.barbershop.name}</p>
                     <p className="text-sm text-muted-foreground">{m.barbershop.address || m.barbershop.phone || "Sem endereço cadastrado"}</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground">
                       {ROLE_LABEL[m.role]}
                     </span>
@@ -100,6 +100,9 @@ function Painel() {
                     </Button>
                     <Button asChild size="sm" variant="outline">
                       <Link to="/barbeiros">Barbeiros</Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link to="/clientes">Clientes</Link>
                     </Button>
                   </div>
                 </li>

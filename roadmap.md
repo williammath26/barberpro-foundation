@@ -11,7 +11,7 @@
 
 ## Pendente
 - [ ] Agenda: ver e criar agendamentos com bloqueio de horários ocupados.
-- [ ] Clientes: cadastro e histórico.
+- [x] Clientes: cadastro, busca e histórico.
 - [ ] Equipe: convidar administradores e recepcionistas.
 - [ ] Agendamento pelo cliente: página pública escolhendo serviço, barbeiro e horário.
 - [ ] Página pública sem login: precisa de política de leitura anônima para barbearia, barbeiros e serviços ativos.
